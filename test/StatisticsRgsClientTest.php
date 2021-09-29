@@ -159,4 +159,33 @@ class StatisticsRgsClientTest extends TestCase
             }'
         ]];
     }
+
+	/**
+	 * @dataProvider getPatientsStatisticsByProductAndDatesProvider
+	 *
+	 * @param $extendedJson
+	 * @covers ::getPatient
+	 *
+	 * @throws InternalErrorRgsException
+	 * @throws BaseRgsException
+	 */
+	public function testGetPatientsStatisticsByProductAndDates(string $extendedJson): void
+	{
+		$expectedResponseDataObject = json_decode($extendedJson, true);
+		$response = $this->client->getPatientsStatisticsByProductAndDates(100, 'all', null, null);
+
+		$this->assertEquals(200, $response->getStatusCode());
+		$this->assertEquals(json_decode($response->getBody()->getContents(), true), $expectedResponseDataObject);
+	}
+
+	public function getPatientsStatisticsByProductAndDatesProvider(): array
+	{
+		return [[
+			'{
+				"allPatients":4,
+				"countAnswerCallRobot":0,
+				"countDataTransferSberHealth":98
+			}',
+		]];
+	}
 }
