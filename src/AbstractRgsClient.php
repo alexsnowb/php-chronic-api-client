@@ -9,6 +9,7 @@ use DocDoc\RgsApiClient\Exception\BadRequestRgsException;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\InvalidArgumentException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Psr7\Request;
 use Psr\Http\Message\RequestInterface;
@@ -121,6 +122,26 @@ abstract class AbstractRgsClient
 				]
 			);
 			throw new InternalErrorRgsException('Ошибка 5xx при запросе к партнёру РГС', 0, $e);
+		} catch (InvalidArgumentException $e) {
+			$errorMessage = $e->getMessage();
+
+			if (false !== \mb_strstr($errorMessage, 'IDNA_ERROR_EMPTY_LABEL')) {
+				$baseURI = $this->client->getConfig('base_uri');
+				$errorMessage = 'Host сервиса Chronic (' . $baseURI . ') является не корректным';
+			}
+
+			$this->logger->error(
+				$errorMessage,
+				[
+					'partnerId' => $this->apiParams->getPartnerId(),
+					'url' => $request->getUri(),
+					'request' => $request->getBody()->getContents(),
+					'responseBody' => isset($response) ? $response->getBody()->getContents() : null,
+					'exception' => $e,
+				]
+			);
+
+			throw new InternalErrorRgsException($errorMessage, 0, $e);
 		} catch (GuzzleException $e) {
 			$this->logger->error(
 				'Критическая не известная ошибка при запросе к партнёру РГС',
@@ -128,7 +149,7 @@ abstract class AbstractRgsClient
 					'partnerId' => $this->apiParams->getPartnerId(),
 					'url' => $request->getUri(),
 					'request' => $request->getBody()->getContents(),
-					'responseBody' => $response ? $response->getBody()->getContents() : null,
+					'responseBody' => isset($response) ? $response->getBody()->getContents() : null,
 					'exception' => $e,
 				]
 			);
